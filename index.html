@@ -1,0 +1,1265 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>9-to-5 Weight Loss Tracker</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#10b981">
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#ecfdf5',
+              100: '#d1fae5',
+              500: '#10b981',
+              600: '#059669',
+              700: '#047857',
+              900: '#064e3b',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    /* Custom scrollbar for the horizontal scrolling grid */
+    .custom-scrollbar::-webkit-scrollbar {
+      height: 8px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.1);
+    }
+    .dark .custom-scrollbar::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.6);
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: rgba(16, 185, 129, 0.3);
+      border-radius: 4px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: rgba(16, 185, 129, 0.6);
+    }
+    /* Sticky column shadow */
+    .sticky-col {
+      position: sticky;
+      left: 0;
+      z-index: 10;
+    }
+    /* Smooth transition for theme switching */
+    body {
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen font-sans antialiased pb-12">
+
+  <!-- Header -->
+  <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="bg-emerald-500 text-slate-950 p-2 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20">
+          <i class="fa-solid fa-fire-flame-curved text-xl"></i>
+        </div>
+        <div>
+          <h1 class="text-lg font-bold tracking-tight text-white">9-to-5 Fit</h1>
+          <p class="text-xs text-slate-400">30-Day Weight Loss Tracker</p>
+        </div>
+      </div>
+      
+      <div class="flex items-center space-x-2">
+        <!-- Google Fit Connection Status -->
+        <button id="google-fit-btn" onclick="toggleGoogleFitModal()" class="flex items-center space-x-2 px-3 h-10 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 transition border border-slate-700">
+          <i class="fa-brands fa-google text-red-400"></i>
+          <span id="google-fit-status-text">Connect Fit</span>
+        </button>
+
+        <!-- Notifications Status -->
+        <button id="notif-btn" onclick="toggleNotifModal()" class="flex items-center space-x-2 px-3 h-10 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 transition border border-slate-700">
+          <i id="notif-icon" class="fa-solid fa-bell-slash text-amber-400"></i>
+          <span id="notif-status-text">Reminders</span>
+        </button>
+
+        <!-- Theme Toggle -->
+        <button onclick="toggleTheme()" class="p-2 h-10 w-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition border border-slate-700 flex items-center justify-center">
+          <i id="theme-icon" class="fa-solid fa-sun"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 space-y-8">
+    
+    <!-- Dashboard Section -->
+    <section class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      
+      <!-- Overall Monthly Success Card -->
+      <div class="bg-slate-800/50 border border-slate-800 rounded-3xl p-6 flex flex-col items-center justify-center text-center relative overflow-hidden">
+        <div class="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl -mr-10 -mt-10"></div>
+        <h3 class="text-sm font-semibold text-slate-400 mb-4 uppercase tracking-wider">Monthly Success</h3>
+        
+        <!-- Circular Progress Ring -->
+        <div class="relative flex items-center justify-center w-40 h-40">
+          <svg class="w-full h-full transform -rotate-90">
+            <circle cx="80" cy="80" r="70" stroke="currentColor" stroke-width="12" class="text-slate-700" fill="transparent" />
+            <circle cx="80" cy="80" r="70" stroke="currentColor" stroke-width="12" class="text-emerald-500 transition-all duration-500" fill="transparent"
+              stroke-dasharray="440" stroke-dashoffset="440" id="success-ring" />
+          </svg>
+          <div class="absolute text-center">
+            <span class="text-4xl font-black text-white" id="success-percentage">0%</span>
+            <p class="text-xs text-slate-400 mt-1">Overall</p>
+          </div>
+        </div>
+        
+        <p class="text-xs text-slate-400 mt-4 max-w-xs">
+          Your weighted average across all 22 weekdays. Keep it above 80% for optimal results!
+        </p>
+      </div>
+
+      <!-- Quick Stats / Streaks -->
+      <div class="bg-slate-800/50 border border-slate-800 rounded-3xl p-6 flex flex-col justify-between space-y-4">
+        <div>
+          <h3 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">Daily Standings</h3>
+          <div class="grid grid-cols-2 gap-4">
+            <div class="bg-slate-900/50 border border-slate-800 p-4 rounded-2xl text-center">
+              <span class="text-2xl font-bold text-emerald-400" id="stats-today-completed">0/12</span>
+              <p class="text-xs text-slate-400 mt-1">Today's Tasks</p>
+            </div>
+            <div class="bg-slate-900/50 border border-slate-800 p-4 rounded-2xl text-center">
+              <span class="text-2xl font-bold text-amber-400" id="stats-streak">0 Days</span>
+              <p class="text-xs text-slate-400 mt-1">Perfect Days</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="border-t border-slate-800/80 pt-4">
+          <h4 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Today's Focus</h4>
+          <div class="flex items-center space-x-3 bg-slate-900/50 border border-slate-800 p-3 rounded-2xl">
+            <div class="text-emerald-400 bg-emerald-500/10 p-2.5 rounded-xl">
+              <i class="fa-solid fa-bullseye text-sm"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="text-xs font-semibold text-white truncate" id="today-focus-task">Hydrate (2 Glasses Water)</p>
+              <p class="text-[10px] text-slate-400 truncate">Next pending task on your schedule</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Visual Analytics Chart -->
+      <div class="bg-slate-800/50 border border-slate-800 rounded-3xl p-6 flex flex-col justify-between">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-sm font-semibold text-slate-400 uppercase tracking-wider">Weekly Block Progress</h3>
+          <span class="text-xs text-emerald-400 font-semibold" id="chart-sub">Real-time</span>
+        </div>
+        <div class="h-44 relative">
+          <canvas id="progressChart"></canvas>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- Core Structural Grid Section -->
+    <section class="bg-slate-800/30 border border-slate-800 rounded-3xl overflow-hidden shadow-xl">
+      <div class="p-6 border-b border-slate-800 bg-slate-800/50 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h2 class="text-lg font-bold text-white flex items-center gap-2">
+            <i class="fa-solid fa-calendar-days text-emerald-400"></i>
+            30-Day Weekday Tracking Grid
+          </h2>
+          <p class="text-xs text-slate-400 mt-1">Scroll horizontally to view all 22 weekdays (Monday to Friday)</p>
+        </div>
+        <div class="flex items-center space-x-2">
+          <button onclick="scrollGrid('left')" class="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl border border-slate-700 transition">
+            <i class="fa-solid fa-chevron-left"></i>
+          </button>
+          <button onclick="scrollGrid('right')" class="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl border border-slate-700 transition">
+            <i class="fa-solid fa-chevron-right"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Horizontal Scrolling Table Container -->
+      <div class="overflow-x-auto custom-scrollbar" id="grid-container">
+        <table class="w-full border-collapse text-left min-w-[1200px]">
+          <thead>
+            <tr class="border-b border-slate-800 bg-slate-900/40">
+              <!-- Sticky Task Label Column Header -->
+              <th class="sticky-col bg-slate-900 border-r border-slate-800 p-4 text-xs font-bold text-slate-400 uppercase tracking-wider w-64 min-w-[240px]">
+                Daily Routine Tasks (12)
+              </th>
+              <!-- Day Headers -->
+              <!-- Generated dynamically in JS -->
+              <template id="day-header-template">
+                <th class="p-3 text-center text-xs font-bold text-slate-400 uppercase tracking-wider border-r border-slate-800/50 min-w-[60px]">
+                  <div class="day-label">Day 1</div>
+                  <div class="text-[9px] text-slate-500 font-normal mt-0.5">Mon</div>
+                </th>
+              </template>
+              <tr id="table-headers" class="border-b border-slate-800 bg-slate-900/40">
+                <!-- Will be populated by JS -->
+              </tr>
+            </tr>
+          </thead>
+          <tbody id="table-body" class="divide-y divide-slate-800/50">
+            <!-- Rows generated dynamically in JS -->
+          </tbody>
+          <tfoot>
+            <!-- Daily Completion % Row -->
+            <tr id="completion-row" class="bg-slate-900/60 font-semibold border-t-2 border-slate-800">
+              <!-- Sticky Label -->
+              <td class="sticky-col bg-slate-900 border-r border-slate-800 p-4 text-xs font-bold text-slate-300 uppercase tracking-wider">
+                Daily Completion %
+              </td>
+              <!-- Populated dynamically by JS -->
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </section>
+
+    <!-- Weekly Blocks Progress Section -->
+    <section class="space-y-4">
+      <h2 class="text-base font-bold text-white flex items-center gap-2">
+        <i class="fa-solid fa-cubes text-emerald-400"></i>
+        Weekly Progress Blocks
+      </h2>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4" id="weekly-blocks-container">
+        <!-- 5 Weekly Cards generated dynamically in JS -->
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Google Fit Connection Modal -->
+  <div id="google-fit-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm hidden">
+    <div class="bg-slate-900 border border-slate-800 rounded-3xl max-w-md w-full p-6 space-y-6 shadow-2xl">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+          <div class="bg-red-500/10 text-red-400 p-2.5 rounded-xl">
+            <i class="fa-brands fa-google text-lg"></i>
+          </div>
+          <h3 class="text-base font-bold text-white">Google Fit Sync</h3>
+        </div>
+        <button onclick="toggleGoogleFitModal()" class="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-xl transition">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="space-y-4 text-sm text-slate-300">
+        <p>
+          Connect your Google Fit account to automatically sync your daily physical activity. 
+        </p>
+        <div class="bg-slate-800/40 border border-slate-800 p-3 rounded-2xl space-y-2 text-xs">
+          <div class="flex items-center space-x-2 text-emerald-400">
+            <i class="fa-solid fa-circle-check"></i>
+            <span>🏃 4km Jog (30 Mins) target sync</span>
+          </div>
+          <div class="flex items-center space-x-2 text-emerald-400">
+            <i class="fa-solid fa-circle-check"></i>
+            <span>🚶 3km Walk (30 Mins) target sync</span>
+          </div>
+        </div>
+
+        <!-- Google Client ID Setup -->
+        <div class="space-y-2">
+          <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider">Google OAuth Client ID</label>
+          <input type="text" id="google-client-id" placeholder="Enter your Google Client ID" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-emerald-500 transition">
+          <p class="text-[10px] text-slate-500">
+            To use real Google Fit sync, create an OAuth 2.0 Web Client ID in the <a href="https://console.cloud.google.com" target="_blank" class="text-emerald-400 hover:underline">Google Cloud Console</a> with your redirect URI.
+          </p>
+        </div>
+      </div>
+
+      <div class="flex flex-col space-y-2 pt-2">
+        <button id="google-fit-connect-btn" onclick="connectGoogleFit()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold py-3 rounded-xl text-xs transition flex items-center justify-center space-x-2">
+          <i class="fa-brands fa-google"></i>
+          <span>Authenticate & Connect</span>
+        </button>
+        <button onclick="mockGoogleFitSync()" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold py-3 rounded-xl text-xs transition flex items-center justify-center space-x-2 border border-slate-700">
+          <i class="fa-solid fa-wand-magic-sparkles"></i>
+          <span>Simulate / Mock Sync (No Setup Needed)</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notifications Modal -->
+  <div id="notif-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm hidden">
+    <div class="bg-slate-900 border border-slate-800 rounded-3xl max-w-md w-full p-6 space-y-6 shadow-2xl">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+          <div class="bg-amber-500/10 text-amber-400 p-2.5 rounded-xl">
+            <i class="fa-solid fa-bell text-lg"></i>
+          </div>
+          <h3 class="text-base font-bold text-white">Hourly Reminders</h3>
+        </div>
+        <button onclick="toggleNotifModal()" class="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-xl transition">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="space-y-4 text-sm text-slate-300">
+        <p>
+          Enable hourly reminders to stay on track during your 9-to-5 window. You will receive notifications for:
+        </p>
+        <ul class="space-y-2 text-xs text-slate-400">
+          <li class="flex items-center space-x-2">
+            <i class="fa-solid fa-circle-chevron-right text-emerald-400"></i>
+            <span>🚶 Hourly 5-Min Desk Walks (Every hour, 9 AM - 5 PM)</span>
+          </li>
+          <li class="flex items-center space-x-2">
+            <i class="fa-solid fa-circle-chevron-right text-emerald-400"></i>
+            <span>🍵 Green Tea Cup 1 (10:30 AM)</span>
+          </li>
+          <li class="flex items-center space-x-2">
+            <i class="fa-solid fa-circle-chevron-right text-emerald-400"></i>
+            <span>🍵 Green Tea Cup 2 (3:30 PM)</span>
+          </li>
+        </ul>
+        <p class="text-xs text-slate-500 bg-slate-950/40 border border-slate-800/80 p-3 rounded-xl">
+          Note: Browser notifications require permission. Keep this tab open or running in the background to ensure reminders trigger reliably.
+        </p>
+      </div>
+
+      <div class="flex flex-col space-y-2 pt-2">
+        <button id="enable-notif-btn" onclick="requestNotificationPermission()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold py-3 rounded-xl text-xs transition flex items-center justify-center space-x-2">
+          <i class="fa-solid fa-bell"></i>
+          <span>Enable Web Notifications</span>
+        </button>
+        <button onclick="triggerTestNotification()" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold py-3 rounded-xl text-xs transition flex items-center justify-center space-x-2 border border-slate-700">
+          <i class="fa-solid fa-paper-plane"></i>
+          <span>Send Test Notification</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings & Data Management Panel -->
+  <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
+    <div class="bg-slate-800/30 border border-slate-800 rounded-3xl p-6 flex flex-col md:flex-row items-center justify-between gap-6">
+      <div class="space-y-1">
+        <h3 class="text-sm font-bold text-white flex items-center gap-2">
+          <i class="fa-solid fa-sliders text-emerald-400"></i>
+          Data & Backup Management
+        </h3>
+        <p class="text-xs text-slate-400">Export your progress, restore from a backup, or clear data to start fresh.</p>
+      </div>
+      <div class="flex flex-wrap items-center gap-3">
+        <button onclick="exportData()" class="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-semibold transition flex items-center space-x-2">
+          <i class="fa-solid fa-download"></i>
+          <span>Export Backup</span>
+        </button>
+        
+        <label class="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-semibold transition flex items-center space-x-2 cursor-pointer">
+          <i class="fa-solid fa-upload"></i>
+          <span>Import Backup</span>
+          <input type="file" id="import-file" onchange="importData(event)" class="hidden" accept=".json">
+        </label>
+
+        <button onclick="resetData()" class="px-4 py-2.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-xl text-xs font-semibold transition flex items-center space-x-2">
+          <i class="fa-solid fa-trash-can"></i>
+          <span>Reset Tracker</span>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Notification Toast -->
+  <div id="toast" class="fixed bottom-5 right-5 z-50 bg-slate-900 border border-slate-800 text-white px-4 py-3 rounded-2xl shadow-2xl flex items-center space-x-3 transform translate-y-20 opacity-0 transition-all duration-300 max-w-sm">
+    <div class="bg-emerald-500/10 text-emerald-400 p-1.5 rounded-lg" id="toast-icon-container">
+      <i class="fa-solid fa-circle-check" id="toast-icon"></i>
+    </div>
+    <p class="text-xs font-medium" id="toast-message">Success message here</p>
+  </div>
+
+  <!-- JavaScript Logic -->
+  <script>
+    // Register Service Worker
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+          .then(reg => console.log('Service Worker registered successfully:', reg.scope))
+          .catch(err => console.error('Service Worker registration failed:', err));
+      });
+    }
+
+    // 12 Daily Routine Tasks
+    const TASKS = [
+      { id: 'hydrate', label: '🌅 Hydrate (2 Glasses Water)', time: 'All Day' },
+      { id: 'jog', label: '🏃 4km Jog (30 Mins)', time: 'Morning' },
+      { id: 'breakfast', label: '🍳 Protein & Fruit Breakfast', time: 'Morning' },
+      { id: 'walks', label: '🚶 Hourly 5-Min Desk Walks', time: '9 AM - 5 PM' },
+      { id: 'tea1', label: '🍵 Green Tea Cup 1 (10:30 AM)', time: '10:30 AM' },
+      { id: 'lunch', label: '🥗 Balanced Nutrient Lunch', time: 'Afternoon' },
+      { id: 'tea2', label: '🍵 Green Tea Cup 2 (3:30 PM)', time: '3:30 PM' },
+      { id: 'snack', label: '🥜 Pre-Walk Mini Snack', time: 'Afternoon' },
+      { id: 'walk', label: '🚶 3km Walk (30 Mins)', time: 'Evening' },
+      { id: 'dinner', label: '🍽️ Shifted Dinner (8:00 PM)', time: '8:00 PM' },
+      { id: 'detox', label: '💤 Digital Detox & Sleep (10 PM)', time: '10:00 PM' },
+      { id: 'sugar', label: '❌ Zero Sugar Maintained', time: 'All Day' }
+    ];
+
+    // Weekday names mapping
+    const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+
+    // State Variables
+    let state = {
+      grid: {}, // { dayIndex: { taskId: boolean } }
+      googleFitConnected: false,
+      googleClientId: '',
+      notificationsEnabled: false,
+      theme: 'dark'
+    };
+
+    let chartInstance = null;
+
+    // Load state from localStorage
+    function loadState() {
+      const savedState = localStorage.getItem('9to5fit_state');
+      if (savedState) {
+        try {
+          state = JSON.parse(savedState);
+          // Ensure all 22 days exist in state
+          for (let d = 1; d <= 22; d++) {
+            if (!state.grid[d]) state.grid[d] = {};
+            TASKS.forEach(task => {
+              if (state.grid[d][task.id] === undefined) {
+                state.grid[d][task.id] = false;
+              }
+            });
+          }
+        } catch (e) {
+          console.error('Error parsing saved state, initializing fresh state', e);
+          initFreshState();
+        }
+      } else {
+        initFreshState();
+      }
+    }
+
+    function initFreshState() {
+      state.grid = {};
+      for (let d = 1; d <= 22; d++) {
+        state.grid[d] = {};
+        TASKS.forEach(task => {
+          state.grid[d][task.id] = false;
+        });
+      }
+      state.googleFitConnected = false;
+      state.googleClientId = '';
+      state.notificationsEnabled = false;
+      state.theme = 'dark';
+      saveState();
+    }
+
+    function saveState() {
+      localStorage.setItem('9to5fit_state', JSON.stringify(state));
+    }
+
+    // Initialize UI Elements
+    document.addEventListener('DOMContentLoaded', () => {
+      loadState();
+      applyTheme();
+      renderGrid();
+      updateAnalytics();
+      initChart();
+      checkNotificationPermissionOnLoad();
+      setupGoogleFitUI();
+      startNotificationInterval();
+    });
+
+    // Toggle Theme (Light/Dark)
+    function toggleTheme() {
+      state.theme = state.theme === 'dark' ? 'light' : 'dark';
+      saveState();
+      applyTheme();
+    }
+
+    function applyTheme() {
+      const html = document.documentElement;
+      const themeIcon = document.getElementById('theme-icon');
+      if (state.theme === 'dark') {
+        html.classList.add('dark');
+        themeIcon.className = 'fa-solid fa-sun text-amber-400';
+        document.body.className = 'bg-slate-900 text-slate-100 min-h-screen font-sans antialiased pb-12';
+      } else {
+        html.classList.remove('dark');
+        themeIcon.className = 'fa-solid fa-moon text-indigo-600';
+        document.body.className = 'bg-slate-50 text-slate-800 min-h-screen font-sans antialiased pb-12';
+      }
+    }
+
+    // Render 22-Day Grid
+    function renderGrid() {
+      const headersRow = document.getElementById('table-headers');
+      const tableBody = document.getElementById('table-body');
+      const completionRow = document.getElementById('completion-row');
+
+      // Clear existing content
+      headersRow.innerHTML = '';
+      tableBody.innerHTML = '';
+      
+      // Keep sticky header label
+      const stickyHeader = document.createElement('th');
+      stickyHeader.className = 'sticky-col bg-slate-900 dark:bg-slate-900 border-r border-slate-800 p-4 text-xs font-bold text-slate-400 uppercase tracking-wider w-64 min-w-[240px]';
+      stickyHeader.innerHTML = 'Daily Routine Tasks (12)';
+      headersRow.appendChild(stickyHeader);
+
+      // Render Day Headers (1 to 22)
+      for (let d = 1; d <= 22; d++) {
+        const weekdayIndex = (d - 1) % 5;
+        const weekdayName = WEEKDAYS[weekdayIndex];
+        
+        const th = document.createElement('th');
+        th.className = 'p-3 text-center text-xs font-bold text-slate-400 uppercase tracking-wider border-r border-slate-800/50 min-w-[70px] bg-slate-900/40 dark:bg-slate-900/40';
+        th.innerHTML = `
+          <div class="text-white font-extrabold">Day ${d}</div>
+          <div class="text-[10px] text-slate-500 font-semibold mt-0.5">${weekdayName}</div>
+        `;
+        headersRow.appendChild(th);
+      }
+
+      // Render Task Rows
+      TASKS.forEach(task => {
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-800/20 dark:hover:bg-slate-800/20 transition-colors border-b border-slate-800/50';
+
+        // Sticky Task Label Cell
+        const labelTd = document.createElement('td');
+        labelTd.className = 'sticky-col bg-slate-900 border-r border-slate-800 p-4 text-xs font-semibold text-slate-300 dark:text-slate-300 flex items-center justify-between w-64 min-w-[240px]';
+        labelTd.innerHTML = `
+          <span class="truncate pr-2">${task.label}</span>
+          <span class="text-[9px] px-2 py-0.5 bg-slate-800 text-slate-400 rounded-full border border-slate-700 shrink-0 font-medium">${task.time}</span>
+        `;
+        tr.appendChild(labelTd);
+
+        // Render Checkboxes for each day
+        for (let d = 1; d <= 22; d++) {
+          const td = document.createElement('td');
+          td.className = 'p-3 text-center border-r border-slate-800/30';
+          
+          const isChecked = state.grid[d][task.id];
+          
+          td.innerHTML = `
+            <div class="flex items-center justify-center">
+              <input type="checkbox" 
+                     id="chk-${d}-${task.id}" 
+                     ${isChecked ? 'checked' : ''} 
+                     onchange="toggleTask(${d}, '${task.id}')"
+                     class="w-6 h-6 rounded-lg bg-slate-950 border-slate-800 text-emerald-500 focus:ring-emerald-500/30 focus:ring-offset-slate-900 focus:ring-2 cursor-pointer transition-all duration-200 hover:border-emerald-500/50 checked:bg-emerald-500 checked:border-emerald-500">
+            </div>
+          `;
+          tr.appendChild(td);
+        }
+        tableBody.appendChild(tr);
+      });
+
+      renderCompletionRow();
+    }
+
+    // Render Daily Completion % Row
+    function renderCompletionRow() {
+      const completionRow = document.getElementById('completion-row');
+      
+      // Clear all cells except the sticky label
+      while (completionRow.children.length > 1) {
+        completionRow.removeChild(completionRow.lastChild);
+      }
+
+      // Calculate and render completion % for each day
+      for (let d = 1; d <= 22; d++) {
+        const pct = calculateDailyPercentage(d);
+        const td = document.createElement('td');
+        td.className = 'p-3 text-center text-xs font-bold border-r border-slate-800/50';
+        
+        let colorClass = 'text-slate-500';
+        if (pct === 100) colorClass = 'text-emerald-400 bg-emerald-500/10';
+        else if (pct >= 75) colorClass = 'text-emerald-500/80';
+        else if (pct >= 50) colorClass = 'text-amber-400/80';
+        else if (pct > 0) colorClass = 'text-red-400/80';
+
+        td.innerHTML = `<span class="px-2 py-1 rounded-lg ${colorClass}" id="pct-${d}">${pct}%</span>`;
+        completionRow.appendChild(td);
+      }
+    }
+
+    // Toggle Task Checkbox
+    function toggleTask(day, taskId) {
+      const checkbox = document.getElementById(`chk-${day}-${taskId}`);
+      state.grid[day][taskId] = checkbox.checked;
+      saveState();
+      
+      // Update specific daily percentage cell immediately
+      const pct = calculateDailyPercentage(day);
+      const pctCell = document.getElementById(`pct-${day}`);
+      if (pctCell) {
+        pctCell.textContent = `${pct}%`;
+        pctCell.className = 'px-2 py-1 rounded-lg ' + (
+          pct === 100 ? 'text-emerald-400 bg-emerald-500/10' :
+          pct >= 75 ? 'text-emerald-500/80' :
+          pct >= 50 ? 'text-amber-400/80' :
+          pct > 0 ? 'text-red-400/80' : 'text-slate-500'
+        );
+      }
+
+      updateAnalytics();
+      updateChart();
+      showToast('Progress updated successfully!', 'success');
+    }
+
+    // Calculate Daily Completion Percentage
+    function calculateDailyPercentage(day) {
+      const dayTasks = state.grid[day];
+      let checkedCount = 0;
+      TASKS.forEach(task => {
+        if (dayTasks[task.id]) checkedCount++;
+      });
+      return Math.round((checkedCount / TASKS.length) * 100);
+    }
+
+    // Calculate Weekly Block Percentage
+    // Week 1: Days 1-5, Week 2: Days 6-10, Week 3: Days 11-15, Week 4: Days 16-20, Week 5: Days 21-22
+    function calculateWeeklyBlockPercentage(weekNum) {
+      let startDay, endDay;
+      if (weekNum === 1) { startDay = 1; endDay = 5; }
+      else if (weekNum === 2) { startDay = 6; endDay = 10; }
+      else if (weekNum === 3) { startDay = 11; endDay = 15; }
+      else if (weekNum === 4) { startDay = 16; endDay = 20; }
+      else if (weekNum === 5) { startDay = 21; endDay = 22; }
+
+      let totalTasks = (endDay - startDay + 1) * TASKS.length;
+      let checkedTasks = 0;
+
+      for (let d = startDay; d <= endDay; d++) {
+        TASKS.forEach(task => {
+          if (state.grid[d][task.id]) checkedTasks++;
+        });
+      }
+
+      return Math.round((checkedTasks / totalTasks) * 100);
+    }
+
+    // Calculate Overall Monthly Success %
+    function calculateMonthlySuccessPercentage() {
+      let totalTasks = 22 * TASKS.length;
+      let checkedTasks = 0;
+      for (let d = 1; d <= 22; d++) {
+        TASKS.forEach(task => {
+          if (state.grid[d][task.id]) checkedTasks++;
+        });
+      }
+      return Math.round((checkedTasks / totalTasks) * 100);
+    }
+
+    // Calculate Perfect Days Streak
+    function calculatePerfectDays() {
+      let streak = 0;
+      let maxStreak = 0;
+      for (let d = 1; d <= 22; d++) {
+        let isPerfect = true;
+        TASKS.forEach(task => {
+          if (!state.grid[d][task.id]) isPerfect = false;
+        });
+        
+        if (isPerfect) {
+          streak++;
+          if (streak > maxStreak) maxStreak = streak;
+        } else {
+          streak = 0;
+        }
+      }
+      return maxStreak;
+    }
+
+    // Update Analytics Dashboard
+    function updateAnalytics() {
+      const overallSuccess = calculateMonthlySuccessPercentage();
+      
+      // Update Circular Progress Ring
+      const ring = document.getElementById('success-ring');
+      const text = document.getElementById('success-percentage');
+      text.textContent = `${overallSuccess}%`;
+      
+      // SVG ring circumference is 2 * pi * 70 = 439.82 -> ~440
+      const strokeDashoffset = 440 - (overallSuccess / 100) * 440;
+      ring.setAttribute('stroke-dashoffset', strokeDashoffset);
+
+      // Update Today's Task Completion
+      // We'll map the current real-world weekday to our tracker days, or default to Day 1
+      const currentDayIndex = getCurrentTrackerDay();
+      const todayCompleted = getCompletedCount(currentDayIndex);
+      document.getElementById('stats-today-completed').textContent = `${todayCompleted}/12`;
+
+      // Update Streak
+      const streak = calculatePerfectDays();
+      document.getElementById('stats-streak').textContent = `${streak} Day${streak === 1 ? '' : 's'}`;
+
+      // Update Today's Focus Task
+      const focusTask = getNextPendingTask(currentDayIndex);
+      document.getElementById('today-focus-task').textContent = focusTask ? focusTask.label : 'All Tasks Completed! 🎉';
+
+      // Update Weekly Blocks Progress Cards
+      renderWeeklyBlocks();
+    }
+
+    // Get current tracker day index based on standard weekday progress
+    // Saves current active day in localStorage to stick to the active day
+    function getCurrentTrackerDay() {
+      let activeDay = localStorage.getItem('9to5fit_active_day');
+      if (!activeDay) {
+        activeDay = '1';
+        localStorage.setItem('9to5fit_active_day', activeDay);
+      }
+      return parseInt(activeDay);
+    }
+
+    function getCompletedCount(day) {
+      let count = 0;
+      TASKS.forEach(task => {
+        if (state.grid[day][task.id]) count++;
+      });
+      return count;
+    }
+
+    function getNextPendingTask(day) {
+      return TASKS.find(task => !state.grid[day][task.id]) || null;
+    }
+
+    // Render Weekly Blocks Cards
+    function renderWeeklyBlocks() {
+      const container = document.getElementById('weekly-blocks-container');
+      container.innerHTML = '';
+
+      const weeks = [
+        { num: 1, label: 'Week 1', range: 'Days 1-5' },
+        { num: 2, label: 'Week 2', range: 'Days 6-10' },
+        { num: 3, label: 'Week 3', range: 'Days 11-15' },
+        { num: 4, label: 'Week 4', range: 'Days 16-20' },
+        { num: 5, label: 'Week 5', range: 'Days 21-22' }
+      ];
+
+      weeks.forEach(w => {
+        const pct = calculateWeeklyBlockPercentage(w.num);
+        
+        let colorClass = 'bg-slate-800/40 border-slate-800';
+        let barColor = 'bg-emerald-500';
+        if (pct === 100) {
+          colorClass = 'bg-emerald-500/5 border-emerald-500/20';
+        }
+
+        const card = document.createElement('div');
+        card.className = `${colorClass} border p-4 rounded-2xl flex flex-col justify-between space-y-3 shadow-sm`;
+        card.innerHTML = `
+          <div class="flex items-center justify-between">
+            <div>
+              <h4 class="text-xs font-bold text-white">${w.label}</h4>
+              <p class="text-[10px] text-slate-400">${w.range}</p>
+            </div>
+            <span class="text-xs font-bold text-emerald-400">${pct}%</span>
+          </div>
+          <div class="w-full bg-slate-950 rounded-full h-2 overflow-hidden border border-slate-800/50">
+            <div class="${barColor} h-full rounded-full transition-all duration-500" style="width: ${pct}%"></div>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    // Scroll table grid left or right
+    function scrollGrid(direction) {
+      const container = document.getElementById('grid-container');
+      const scrollAmount = 300;
+      if (direction === 'left') {
+        container.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
+      } else {
+        container.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+      }
+    }
+
+    // Initialize Chart.js
+    function initChart() {
+      const ctx = document.getElementById('progressChart').getContext('2d');
+      
+      const data = {
+        labels: ['W1', 'W2', 'W3', 'W4', 'W5'],
+        datasets: [{
+          label: 'Completion %',
+          data: [
+            calculateWeeklyBlockPercentage(1),
+            calculateWeeklyBlockPercentage(2),
+            calculateWeeklyBlockPercentage(3),
+            calculateWeeklyBlockPercentage(4),
+            calculateWeeklyBlockPercentage(5)
+          ],
+          backgroundColor: 'rgba(16, 185, 129, 0.15)',
+          borderColor: '#10b981',
+          borderWidth: 2,
+          pointBackgroundColor: '#10b981',
+          pointBorderColor: '#fff',
+          pointHoverBackgroundColor: '#fff',
+          pointHoverBorderColor: '#10b981',
+          fill: true,
+          tension: 0.4
+        }]
+      };
+
+      const config = {
+        type: 'line',
+        data: data,
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  return `Progress: ${context.parsed.y}%`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: { display: false },
+              ticks: { color: '#94a3b8', font: { size: 10, weight: 'bold' } }
+            },
+            y: {
+              min: 0,
+              max: 100,
+              grid: { color: 'rgba(148, 163, 184, 0.05)' },
+              ticks: { color: '#94a3b8', font: { size: 10 } }
+            }
+          }
+        }
+      };
+
+      chartInstance = new Chart(ctx, config);
+    }
+
+    // Update Chart.js data
+    function updateChart() {
+      if (chartInstance) {
+        chartInstance.data.datasets[0].data = [
+          calculateWeeklyBlockPercentage(1),
+          calculateWeeklyBlockPercentage(2),
+          calculateWeeklyBlockPercentage(3),
+          calculateWeeklyBlockPercentage(4),
+          calculateWeeklyBlockPercentage(5)
+        ];
+        chartInstance.update();
+      }
+    }
+
+    // Toast Notifications
+    function showToast(message, type = 'success') {
+      const toast = document.getElementById('toast');
+      const toastMsg = document.getElementById('toast-message');
+      const toastIcon = document.getElementById('toast-icon');
+      const toastIconContainer = document.getElementById('toast-icon-container');
+
+      toastMsg.textContent = message;
+
+      if (type === 'success') {
+        toastIcon.className = 'fa-solid fa-circle-check';
+        toastIconContainer.className = 'bg-emerald-500/10 text-emerald-400 p-1.5 rounded-lg';
+      } else if (type === 'warning') {
+        toastIcon.className = 'fa-solid fa-triangle-exclamation';
+        toastIconContainer.className = 'bg-amber-500/10 text-amber-400 p-1.5 rounded-lg';
+      } else {
+        toastIcon.className = 'fa-solid fa-circle-xmark';
+        toastIconContainer.className = 'bg-red-500/10 text-red-400 p-1.5 rounded-lg';
+      }
+
+      toast.classList.remove('translate-y-20', 'opacity-0');
+      toast.classList.add('translate-y-0', 'opacity-100');
+
+      setTimeout(() => {
+        toast.classList.remove('translate-y-0', 'opacity-100');
+        toast.classList.add('translate-y-20', 'opacity-0');
+      }, 3000);
+    }
+
+    // Modals Management
+    function toggleGoogleFitModal() {
+      const modal = document.getElementById('google-fit-modal');
+      modal.classList.toggle('hidden');
+    }
+
+    function toggleNotifModal() {
+      const modal = document.getElementById('notif-modal');
+      modal.classList.toggle('hidden');
+    }
+
+    // Hourly Notifications Logic
+    function checkNotificationPermissionOnLoad() {
+      if (Notification.permission === 'granted') {
+        state.notificationsEnabled = true;
+        updateNotifUI(true);
+      } else {
+        state.notificationsEnabled = false;
+        updateNotifUI(false);
+      }
+    }
+
+    function requestNotificationPermission() {
+      if (!('Notification' in window)) {
+        showToast('This browser does not support desktop notifications.', 'error');
+        return;
+      }
+
+      Notification.requestPermission().then((permission) => {
+        if (permission === 'granted') {
+          state.notificationsEnabled = true;
+          saveState();
+          updateNotifUI(true);
+          showToast('Notifications enabled successfully!', 'success');
+          toggleNotifModal();
+          triggerTestNotification();
+        } else {
+          state.notificationsEnabled = false;
+          saveState();
+          updateNotifUI(false);
+          showToast('Notification permission denied.', 'warning');
+        }
+      });
+    }
+
+    function updateNotifUI(enabled) {
+      const btn = document.getElementById('notif-btn');
+      const statusText = document.getElementById('notif-status-text');
+      const icon = document.getElementById('notif-icon');
+      const modalBtn = document.getElementById('enable-notif-btn');
+
+      if (enabled) {
+        btn.className = 'flex items-center space-x-2 px-3 h-10 rounded-xl text-xs font-semibold bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 transition border border-emerald-500/30';
+        statusText.textContent = 'Active Reminders';
+        icon.className = 'fa-solid fa-bell text-emerald-400';
+        if (modalBtn) {
+          modalBtn.className = 'w-full bg-slate-800 text-slate-400 font-bold py-3 rounded-xl text-xs cursor-not-allowed';
+          modalBtn.innerHTML = '<i class="fa-solid fa-check"></i> <span>Notifications Active</span>';
+          modalBtn.disabled = true;
+        }
+      } else {
+        btn.className = 'flex items-center space-x-2 px-3 h-10 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 transition border border-slate-700';
+        statusText.textContent = 'Reminders';
+        icon.className = 'fa-solid fa-bell-slash text-amber-400';
+        if (modalBtn) {
+          modalBtn.className = 'w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold py-3 rounded-xl text-xs transition flex items-center justify-center space-x-2';
+          modalBtn.innerHTML = '<i class="fa-solid fa-bell"></i> <span>Enable Web Notifications</span>';
+          modalBtn.disabled = false;
+        }
+      }
+    }
+
+    function triggerTestNotification() {
+      if (Notification.permission === 'granted') {
+        navigator.serviceWorker.ready.then((registration) => {
+          registration.showNotification('9-to-5 Fit Tracker', {
+            body: '🔥 Keep it up! This is a test notification to verify reminders are working.',
+            icon: 'https://cdn-icons-png.flaticon.com/512/3043/3043218.png',
+            badge: 'https://cdn-icons-png.flaticon.com/512/3043/3043218.png'
+          });
+        });
+        showToast('Test notification sent!', 'success');
+      } else {
+        showToast('Please enable notification permissions first.', 'warning');
+      }
+    }
+
+    // Check time and trigger hourly notifications
+    function startNotificationInterval() {
+      // Check every 60 seconds
+      setInterval(() => {
+        if (!state.notificationsEnabled) return;
+
+        const now = new Date();
+        const hour = now.getHours();
+        const minutes = now.getMinutes();
+        const day = now.getDay();
+
+        // Only trigger on weekdays (Mon-Fri)
+        if (day === 0 || day === 6) return;
+
+        // Hourly 5-Min Desk Walks (Every hour on the hour, 9 AM to 5 PM)
+        if (minutes === 0 && hour >= 9 && hour <= 17) {
+          sendHourlyReminder('🚶 Hourly 5-Min Desk Walk!', 'Time to stand up, stretch, and walk for 5 minutes. Keep moving!');
+        }
+
+        // Green Tea Cup 1 (10:30 AM)
+        if (hour === 10 && minutes === 30) {
+          sendHourlyReminder('🍵 Green Tea Cup 1 Time!', 'Enjoy your first cup of antioxidant-rich green tea to boost metabolism.');
+        }
+
+        // Green Tea Cup 2 (3:30 PM)
+        if (hour === 15 && minutes === 30) {
+          sendHourlyReminder('🍵 Green Tea Cup 2 Time!', 'Enjoy your second cup of green tea to beat the afternoon slump.');
+        }
+      }, 60000);
+    }
+
+    function sendHourlyReminder(title, body) {
+      if (Notification.permission === 'granted') {
+        navigator.serviceWorker.ready.then((registration) => {
+          registration.showNotification(title, {
+            body: body,
+            icon: 'https://cdn-icons-png.flaticon.com/512/3043/3043218.png',
+            badge: 'https://cdn-icons-png.flaticon.com/512/3043/3043218.png',
+            vibrate: [200, 100, 200]
+          });
+        });
+      }
+    }
+
+    // Google Fit Integration Logic
+    function setupGoogleFitUI() {
+      const clientIdInput = document.getElementById('google-client-id');
+      if (clientIdInput) {
+        clientIdInput.value = state.googleClientId || '';
+      }
+      updateGoogleFitUI();
+    }
+
+    function updateGoogleFitUI() {
+      const btn = document.getElementById('google-fit-btn');
+      const statusText = document.getElementById('google-fit-status-text');
+      const modalBtn = document.getElementById('google-fit-connect-btn');
+
+      if (state.googleFitConnected) {
+        btn.className = 'flex items-center space-x-2 px-3 h-10 rounded-xl text-xs font-semibold bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 transition border border-emerald-500/30';
+        statusText.textContent = 'Google Fit Connected';
+        if (modalBtn) {
+          modalBtn.className = 'w-full bg-slate-800 text-slate-400 font-bold py-3 rounded-xl text-xs cursor-not-allowed';
+          modalBtn.innerHTML = '<i class="fa-solid fa-check"></i> <span>Google Fit Connected</span>';
+          modalBtn.disabled = true;
+        }
+      } else {
+        btn.className = 'flex items-center space-x-2 px-3 h-10 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 transition border border-slate-700';
+        statusText.textContent = 'Connect Fit';
+        if (modalBtn) {
+          modalBtn.className = 'w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold py-3 rounded-xl text-xs transition flex items-center justify-center space-x-2';
+          modalBtn.innerHTML = '<i class="fa-brands fa-google"></i> <span>Authenticate & Connect</span>';
+          modalBtn.disabled = false;
+        }
+      }
+    }
+
+    function connectGoogleFit() {
+      const clientId = document.getElementById('google-client-id').value.trim();
+      if (!clientId) {
+        showToast('Please enter a valid Google Client ID.', 'error');
+        return;
+      }
+
+      state.googleClientId = clientId;
+      saveState();
+
+      // OAuth 2.0 Authorization Endpoint
+      const oauthUrl = 'https://accounts.google.com/o/oauth2/v2/auth';
+      const redirectUri = window.location.href.split('#')[0]; // Current page URL
+      const scope = 'https://www.googleapis.com/auth/fitness.activity.read';
+      const responseType = 'token';
+
+      const fullUrl = `${oauthUrl}?client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scope)}&response_type=${encodeURIComponent(responseType)}`;
+      
+      // Redirect to Google OAuth
+      window.location.href = fullUrl;
+    }
+
+    // Parse Access Token from URL Hash on callback
+    const urlHash = window.location.hash;
+    if (urlHash) {
+      const params = new URLSearchParams(urlHash.substring(1));
+      const accessToken = params.get('access_token');
+      if (accessToken) {
+        state.googleFitConnected = true;
+        saveState();
+        updateGoogleFitUI();
+        showToast('Google Fit connected successfully!', 'success');
+        
+        // Clean URL hash
+        window.history.replaceState(null, null, window.location.pathname);
+        
+        // Fetch Google Fit Data
+        fetchGoogleFitData(accessToken);
+      }
+    }
+
+    function fetchGoogleFitData(token) {
+      // Aggregate steps and distance for today
+      const now = new Date();
+      const startTime = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+      const endTime = now.getTime();
+
+      const requestBody = {
+        aggregateBy: [
+          { dataTypeName: 'com.google.step_count.delta' },
+          { dataTypeName: 'com.google.distance.delta' }
+        ],
+        bucketByTime: { durationMillis: 86400000 }, // 24 hours bucket
+        startTimeMillis: startTime,
+        endTimeMillis: endTime
+      };
+
+      fetch('https://www.googleapis.com/fitness/v1/users/me/dataset:aggregate', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestBody)
+      })
+      .then(res => res.json())
+      .then(data => {
+        processGoogleFitData(data);
+      })
+      .catch(err => {
+        console.error('Error fetching Google Fit data:', err);
+        showToast('Failed to fetch Google Fit data.', 'error');
+      });
+    }
+
+    function processGoogleFitData(data) {
+      // Parse aggregates
+      let steps = 0;
+      let distanceMeters = 0;
+
+      try {
+        if (data.bucket && data.bucket[0] && data.bucket[0].dataset) {
+          data.bucket[0].dataset.forEach(ds => {
+            if (ds.point && ds.point[0] && ds.point[0].value && ds.point[0].value[0]) {
+              const val = ds.point[0].value[0];
+              if (ds.dataSourceId.includes('step_count')) {
+                steps = val.intVal || val.fpVal || 0;
+              } else if (ds.dataSourceId.includes('distance')) {
+                distanceMeters = val.fpVal || 0;
+              }
+            }
+          });
+        }
+
+        const distanceKm = distanceMeters / 1000;
+        const activeDay = getCurrentTrackerDay();
+
+        let autoChecked = [];
+
+        // 🏃 4km Jog target
+        if (distanceKm >= 4.0) {
+          if (!state.grid[activeDay]['jog']) {
+            state.grid[activeDay]['jog'] = true;
+            autoChecked.push('🏃 4km Jog');
+          }
+        }
+
+        // 🚶 3km Walk target
+        if (distanceKm >= 3.0) {
+          if (!state.grid[activeDay]['walk']) {
+            state.grid[activeDay]['walk'] = true;
+            autoChecked.push('🚶 3km Walk');
+          }
+        }
+
+        if (autoChecked.length > 0) {
+          saveState();
+          renderGrid();
+          updateAnalytics();
+          updateChart();
+          showToast(`Synced Google Fit: Auto-completed ${autoChecked.join(' and ')}!`, 'success');
+        } else {
+          showToast(`Synced Google Fit: Steps: ${steps.toLocaleString()}, Distance: ${distanceKm.toFixed(2)}km. Targets not reached yet.`, 'warning');
+        }
+
+      } catch (e) {
+        console.error('Error parsing Google Fit aggregate response:', e);
+      }
+    }
+
+    // Mock Google Fit Sync for quick testing/demo
+    function mockGoogleFitSync() {
+      state.googleFitConnected = true;
+      saveState();
+      updateGoogleFitUI();
+      toggleGoogleFitModal();
+
+      const activeDay = getCurrentTrackerDay();
+      
+      // Auto check jog and walk for active day
+      state.grid[activeDay]['jog'] = true;
+      state.grid[activeDay]['walk'] = true;
+      
+      saveState();
+      renderGrid();
+      updateAnalytics();
+      updateChart();
+
+      showToast('Simulated Google Fit Sync: Auto-completed 🏃 4km Jog and 🚶 3km Walk!', 'success');
+    }
+
+    // Export Data Utility
+    function exportData() {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", `9to5fit_backup_${new Date().toISOString().split('T')[0]}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+      showToast('Data exported successfully!', 'success');
+    }
+
+    // Import Data Utility
+    function importData(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const importedState = JSON.parse(e.target.result);
+          
+          // Basic validation
+          if (importedState.grid && typeof importedState.grid === 'object') {
+            state = importedState;
+            saveState();
+            applyTheme();
+            renderGrid();
+            updateAnalytics();
+            updateChart();
+            setupGoogleFitUI();
+            checkNotificationPermissionOnLoad();
+            showToast('Backup restored successfully!', 'success');
+          } else {
+            showToast('Invalid backup file format.', 'error');
+          }
+        } catch (err) {
+          showToast('Failed to parse backup file.', 'error');
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    // Reset Data Utility
+    function resetData() {
+      if (confirm('Are you absolutely sure you want to reset all your tracking progress? This cannot be undone.')) {
+        initFreshState();
+        renderGrid();
+        updateAnalytics();
+        updateChart();
+        setupGoogleFitUI();
+        checkNotificationPermissionOnLoad();
+        showToast('All progress has been reset.', 'warning');
+      }
+    }
+  </script>
+</body>
+</html>
