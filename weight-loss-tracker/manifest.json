@@ -1,0 +1,18 @@
+{
+  "short_name": "9to5Fit",
+  "name": "9-to-5 Weight Loss Tracker",
+  "description": "Track your 9-to-5 weight loss routine with daily tasks, analytics, Google Fit sync, and hourly notifications.",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/3043/3043218.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "./index.html",
+  "background_color": "#0f172a",
+  "theme_color": "#10b981",
+  "display": "standalone",
+  "orientation": "portrait"
+}
